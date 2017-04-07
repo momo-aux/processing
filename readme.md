@@ -12,4 +12,7 @@ Mouse wheel - zoom
 
 Lightning  
 Playing around with PVector lerp splitting manipulating  
-Move the mouse and lightning effect will appear from dots to the mouse.
+Move the mouse and lightning effect will appear from dots to the mouse.  
+
+Physics  
+Collision testing - work in progress  

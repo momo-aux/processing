@@ -13,7 +13,7 @@ void setup() {
   objects.add(new Ball(defaultBallRadius, 300, 100, #0000FF, #FF0000, new PVector(), true));
   objects.get(0).mass=5;
   //
-  for (int i = 1; i <= 1; i++) {
+  for (int i = 1; i <= 3; i++) {
     for (int j = 1; j <= 2; j++) {
       //objects.add(new Ball(defaultBallRadius, i*50, j*50, #FFFF00, #00FF00, new PVector(random(-.5, .5), random(-.5, .5)), true));
       objects.add(new Ball(defaultBallRadius, i*50+10*j, j*50, #FFFF00, #00FF00, new PVector(), true));

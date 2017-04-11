@@ -15,4 +15,7 @@ Playing around with PVector lerp splitting manipulating
 Move the mouse and lightning effect will appear from dots to the mouse.  
 
 Physics  
-Collision testing - work in progress  
+Collision detection
+Left mouse drags ball
+Right mouse resets scene
+Mousewheel changes gravity

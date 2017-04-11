@@ -2,8 +2,8 @@ int factor = 8;
 float defaultBallRadius=20;
 int sizeFactor = floor(defaultBallRadius/2);
 
-float gravity = 1;
-float friction = 0.97;
+float gravity = 1.0f;
+float friction = 0.98;
 float bounce = 0.96;
 Physical selectedPhy; 
 int ballx = 6;
@@ -14,13 +14,13 @@ float restitution = 0.95;
 ArrayList<Physical> objects = new ArrayList<Physical>();
 void setup() {
   size(500, 500);
-  boldFont = createFont("Arial Bold", 18);
+  boldFont = createFont("Arial Bold", 12);
   //
   for (int i = 1; i <= ballx; i++) {
     for (int j = 1; j <= bally; j++) {
       //objects.add(new Ball(defaultBallRadius, i*50, j*50, #FFFF00, #00FF00, new PVector(random(-.5, .5), random(-.5, .5)), true));
       float factor = random(defaultBallRadius-sizeFactor, defaultBallRadius+sizeFactor);
-      objects.add(new Ball(1*factor, i*50*j, j*50, new PVector(random(-5,5),0), true, floor(factor/8)));
+      objects.add(new Ball(1*factor, i*50*j, j*50, new PVector(random(-5, 5), 0), true, floor(factor/8)));
     }
   }
   /*/
@@ -31,15 +31,14 @@ void setup() {
 }
 
 void reset() {
-  println("----- RESET -----");
   objects = new ArrayList<Physical>();
   setup();
 }
 void helpText() {
-  String text = "Linksklick: Ball greifen\nRechtklick: Zurücksetzen"; 
+  String text = "Linksklick: Ball greifen\nRechtklick: Zurücksetzen\nMausrad: Gravitation ändern: "+gravity; 
   textFont(boldFont);
   fill(#FFFFFF);
-  text(text, 10, 10, width, 50);
+  text(text, 10, 10, width, 100);
 }
 
 void draw() {
@@ -58,6 +57,14 @@ void draw() {
 }
 
 
+void mouseWheel(MouseEvent event) {
+  float e = event.getCount();
+  gravity +=e;
+  if (gravity > 2)
+    gravity=2;
+  if (gravity < -2)
+    gravity=-2;
+}
 void mouseDragged() {
   if (mouseButton == LEFT) {
     if (selectedPhy != null) {
@@ -159,7 +166,7 @@ class Ball extends Physical {
   void calc() {
     if (!dragged) {
       velocity = velocity.mult(friction);
-      velocity = velocity.add(new PVector(0,0.5));
+      velocity = velocity.add(new PVector(0, 0.5).mult(gravity));
       position.add(velocity);
     }
 
@@ -191,8 +198,6 @@ class Ball extends Physical {
       float abstandhoch2 = PVector.sub(target.position, this.position).magSq();
 
       if (rhoch2 > abstandhoch2) {
-        println("---RESOLVE---");
-
         PVector distance = PVector.sub(this.position, target.position);
         float d = distance.mag();
         // push-pull them apart based off their mass
@@ -204,9 +209,7 @@ class Ball extends Physical {
 
         // impact speed
         PVector v = (this.velocity.sub(target.velocity));
-        //println("V:("+floor(v.x)+"|"+floor(v.y)+")");
         float vn = v.dot(distance.normalize());
-        //println(vn);
         if (vn > 0.0f) return;
         // collision impulse
         float i = (-(1.0f + restitution) * vn)  / (this.inv_mass + target.inv_mass);

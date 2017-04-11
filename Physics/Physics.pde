@@ -2,14 +2,14 @@ int factor = 8;
 float defaultBallRadius=20;
 int sizeFactor = floor(defaultBallRadius/2);
 
-float spring = 0.03;
 float gravity = 1;
-float friction = 0.95;
-float bounce = 0.9;
+float friction = 0.97;
+float bounce = 0.96;
 Physical selectedPhy; 
-int ballx = 5;
-int bally = 2;
+int ballx = 6;
+int bally = 1;
 PFont boldFont;
+float restitution = 0.95;
 
 ArrayList<Physical> objects = new ArrayList<Physical>();
 void setup() {
@@ -19,7 +19,8 @@ void setup() {
   for (int i = 1; i <= ballx; i++) {
     for (int j = 1; j <= bally; j++) {
       //objects.add(new Ball(defaultBallRadius, i*50, j*50, #FFFF00, #00FF00, new PVector(random(-.5, .5), random(-.5, .5)), true));
-      objects.add(new Ball(random(defaultBallRadius-sizeFactor, defaultBallRadius+sizeFactor), i*50+10*j, j*50, new PVector(), true, 1));
+      float factor = random(defaultBallRadius-sizeFactor, defaultBallRadius+sizeFactor);
+      objects.add(new Ball(1*factor, i*50*j, j*50, new PVector(random(-5,5),0), true, floor(factor/8)));
     }
   }
   /*/
@@ -30,25 +31,15 @@ void setup() {
 }
 
 void reset() {
-  int i = 1;
-  int j = 1;
-  for (Physical phy : objects) {
-    if (i > ballx) {
-      i=1;
-      j++;
-    }
-    phy.position.x=i*50+10*j;
-    phy.position.y=j*50;
-    phy.velocity = new PVector();
-    i++;
-  }
+  println("----- RESET -----");
+  objects = new ArrayList<Physical>();
+  setup();
 }
 void helpText() {
   String text = "Linksklick: Ball greifen\nRechtklick: Zurücksetzen"; 
   textFont(boldFont);
   fill(#FFFFFF);
-  text(text, 10, 10,width,50); 
-  
+  text(text, 10, 10, width, 50);
 }
 
 void draw() {
@@ -59,11 +50,7 @@ void draw() {
     phy.calc();
     for (int j=0; j<objects.size(); j++) {
       if (i!=j) {
-        Physical other = objects.get(j);
-
-        if (phy.collision(other)) {
-          phy.resolveCollision(other);
-        }
+        phy.collideAndResolve(objects.get(j));
       }
     }
     phy.draw();
@@ -113,7 +100,7 @@ Physical mouseColission() {
   return hit;
 }
 interface Collidable {
-  boolean collision(Physical col);
+  void collideAndResolve(Physical col);
 }
 
 abstract class Physical implements Collidable {
@@ -126,8 +113,7 @@ abstract class Physical implements Collidable {
   float radius;
   PVector position;
   boolean dragged;
-  abstract boolean collision(Physical col);
-  abstract void resolveCollision(Physical other);
+  abstract void collideAndResolve(Physical other);
   abstract void calc();
   abstract void draw();
 }
@@ -155,7 +141,7 @@ class Ball extends Physical {
     this.dragged=false;
     this.mass = 1;
     this.inv_mass = 1/mass;
-    this.restitution = .1;
+    this.restitution = .85;
     this.c = #FFFFFF;
     this.cc = #FF0000;
     this.sc = false;
@@ -163,7 +149,7 @@ class Ball extends Physical {
   }
 
   void calcColor() {
-    this.c = color(this.velocity.mag()/20*255, 255-this.velocity.mag()/20*255, 0);
+    this.c = color(this.velocity.mag()/10*255, 255-this.velocity.mag()/10*255, 0);
     /*/Debug colors
      int r = (this.c >> 16) & 0xFF;
      int g = (this.c >> 8) & 0xFF;
@@ -172,10 +158,8 @@ class Ball extends Physical {
   }
   void calc() {
     if (!dragged) {
-      velocity.y = velocity.y + (0.5*mass*gravity);
-      if (position.y == height - radius) {
-        velocity.mult(friction);
-      }
+      velocity = velocity.mult(friction);
+      velocity = velocity.add(new PVector(0,0.5));
       position.add(velocity);
     }
 
@@ -199,41 +183,44 @@ class Ball extends Physical {
     }
   }
 
-  boolean collision(Physical other) {
-    if (other instanceof Ball) {
-      float rhoch2 = (this.radius + other.radius);
-      rhoch2 = rhoch2*rhoch2;
-      float abstandhoch2 = PVector.sub(other.position, this.position).magSq();
-      return rhoch2 > abstandhoch2;
+  void collideAndResolve(Physical target) {
+
+    if (target instanceof Ball) {
+      float rhoch2 = (this.radius + target.radius);
+      rhoch2 = pow(rhoch2, 2);
+      float abstandhoch2 = PVector.sub(target.position, this.position).magSq();
+
+      if (rhoch2 > abstandhoch2) {
+        println("---RESOLVE---");
+
+        PVector distance = PVector.sub(this.position, target.position);
+        float d = distance.mag();
+        // push-pull them apart based off their mass
+        PVector move = distance.mult((this.radius+target.radius-d)/d);
+
+
+        this.position = this.position.add(move.mult(this.inv_mass / (this.inv_mass + target.inv_mass)));
+        target.position = target.position.sub(move.mult(target.inv_mass / (this.inv_mass + target.inv_mass)));
+
+        // impact speed
+        PVector v = (this.velocity.sub(target.velocity));
+        //println("V:("+floor(v.x)+"|"+floor(v.y)+")");
+        float vn = v.dot(distance.normalize());
+        //println(vn);
+        if (vn > 0.0f) return;
+        // collision impulse
+        float i = (-(1.0f + restitution) * vn)  / (this.inv_mass + target.inv_mass);
+        PVector impulse = distance.normalize().mult(i);
+
+        // change in momentum
+        this.velocity = this.velocity.add(impulse.mult(this.inv_mass));
+        target.velocity = target.velocity.sub(impulse.mult(target.inv_mass));
+      }
     }
-    return false;
   }
 
-  void resolveCollision(Physical target)
+  void resolveCollisionSimple(Physical target)
   {
-    /*/
-     // Calculate relative velocity
-     PVector rv = PVector.sub(target.velocity, this.velocity);
-     PVector normal = PVector.sub(target.position,this.position);
-     normal.normalize();
-     // Calculate relative velocity in terms of the normal direction
-     float velAlongNormal = PVector.dot(rv,normal);
-     
-     println(velAlongNormal);
-     // Calculate restitution
-     
-     // Do not resolve if velocities are separating
-     if(velAlongNormal > 0)
-     return;
-     
-     float e = min( this.restitution, target.restitution);
-     float j = -(1 + e) * velAlongNormal;
-     j = j / ( this.inv_mass + target.inv_mass );
-     
-     PVector impulse = rv.mult(j);
-     this.velocity = PVector.sub(this.velocity,PVector.mult(impulse,this.inv_mass));
-     target.velocity=PVector.add(target.velocity,PVector.mult(impulse,target.inv_mass));
-     //*/
     PVector difference = PVector.sub(target.position, this.position);
     difference.normalize();
     this.velocity.sub(difference);
@@ -243,8 +230,7 @@ class Ball extends Physical {
     noFill();
     stroke(c);
     ellipse(position.x, position.y, diameter, diameter);
-
-    if (velocity.magSq() > 1) {
+    if (velocity.magSq() > .5) {
       PVector dir = new PVector();
       velocity.normalize(dir);
       PVector spitze = PVector.mult(dir, radius).add(position);
@@ -264,5 +250,7 @@ class Ball extends Physical {
       endShape(CLOSE);
       noFill();
     }
+    fill(#FFFFFF);
+    text(floor(mass), position.x-5, position.y+6);
   }
 }

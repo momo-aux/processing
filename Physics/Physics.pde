@@ -1,22 +1,25 @@
 int factor = 8;
-float defaultBallRadius;
+float defaultBallRadius=20;
+int sizeFactor = floor(defaultBallRadius/2);
 
 float spring = 0.03;
 float gravity = 1;
 float friction = 0.95;
 float bounce = 0.9;
+Physical selectedPhy; 
+int ballx = 5;
+int bally = 2;
+PFont boldFont;
 
 ArrayList<Physical> objects = new ArrayList<Physical>();
 void setup() {
   size(500, 500);
-  defaultBallRadius = 25;
-  objects.add(new Ball(defaultBallRadius, 300, 100, #0000FF, #FF0000, new PVector(), true));
-  objects.get(0).mass=5;
+  boldFont = createFont("Arial Bold", 18);
   //
-  for (int i = 1; i <= 3; i++) {
-    for (int j = 1; j <= 2; j++) {
+  for (int i = 1; i <= ballx; i++) {
+    for (int j = 1; j <= bally; j++) {
       //objects.add(new Ball(defaultBallRadius, i*50, j*50, #FFFF00, #00FF00, new PVector(random(-.5, .5), random(-.5, .5)), true));
-      objects.add(new Ball(defaultBallRadius, i*50+10*j, j*50, #FFFF00, #00FF00, new PVector(), true));
+      objects.add(new Ball(random(defaultBallRadius-sizeFactor, defaultBallRadius+sizeFactor), i*50+10*j, j*50, new PVector(), true, 1));
     }
   }
   /*/
@@ -26,8 +29,31 @@ void setup() {
    //*/
 }
 
+void reset() {
+  int i = 1;
+  int j = 1;
+  for (Physical phy : objects) {
+    if (i > ballx) {
+      i=1;
+      j++;
+    }
+    phy.position.x=i*50+10*j;
+    phy.position.y=j*50;
+    phy.velocity = new PVector();
+    i++;
+  }
+}
+void helpText() {
+  String text = "Linksklick: Ball greifen\nRechtklick: Zurücksetzen"; 
+  textFont(boldFont);
+  fill(#FFFFFF);
+  text(text, 10, 10,width,50); 
+  
+}
+
 void draw() {
   background(#000000);
+  helpText();
   for (int i=0; i<objects.size(); i++) {
     Physical phy = objects.get(i);
     phy.calc();
@@ -37,16 +63,6 @@ void draw() {
 
         if (phy.collision(other)) {
           phy.resolveCollision(other);
-          PVector hit = PVector.sub(other.position, phy.position);
-
-          hit.normalize();
-          hit.mult(PVector.sub(phy.position, other.position).mag()-phy.radius);
-
-
-          hit.add(phy.position);
-          if (phy.sc) {
-            line(hit.x, hit.y, phy.position.x, phy.position.y);
-          }
         }
       }
     }
@@ -57,21 +73,44 @@ void draw() {
 
 void mouseDragged() {
   if (mouseButton == LEFT) {
-    objects.get(0).position = new PVector(mouseX, mouseY);
-    objects.get(0).velocity =  new PVector();
+    if (selectedPhy != null) {
+      selectedPhy.position = new PVector(mouseX, mouseY);
+      selectedPhy.velocity =  new PVector();
+    }
   }
 }
 void mousePressed() {
   if (mouseButton == LEFT) {
-    objects.get(0).dragged=true;
-    objects.get(0).position = new PVector(mouseX, mouseY);
+    selectedPhy=mouseColission();
+    if (selectedPhy != null) {
+      selectedPhy.dragged=true;
+      selectedPhy.position = new PVector(mouseX, mouseY);
+    }
   }
 }
 void mouseReleased() {
   if (mouseButton == LEFT) {
-    objects.get(0).dragged=false;
-    objects.get(0).velocity =  PVector.sub(new PVector(mouseX, mouseY), new PVector(pmouseX, pmouseY));
+    if (selectedPhy != null) {
+      selectedPhy.dragged=false;
+      selectedPhy.velocity =  PVector.sub(new PVector(mouseX, mouseY), new PVector(pmouseX, pmouseY));
+    }
   }
+  if (mouseButton == RIGHT) {
+    reset();
+  }
+}
+
+Physical mouseColission() {
+  Physical hit = null;
+  for (int i=0; i<objects.size(); i++) {
+    Physical phy = objects.get(i); 
+    if (phy instanceof Ball) {
+      Ball b = (Ball)phy;
+      if (PVector.sub(b.position, new PVector(mouseX, mouseY)).mag() < b.diameter)
+        return phy;
+    }
+  }
+  return hit;
 }
 interface Collidable {
   boolean collision(Physical col);
@@ -98,20 +137,39 @@ class Ball extends Physical {
   color c;
   float diameter;
 
-  Ball(float radius, int x, int y, color col, color collisioncolor, PVector velocity, boolean showCollision) {
+  Ball(float radius, int x, int y, PVector velocity, boolean showCollision, float mass) {
+    this(radius, x, y);
+    this.mass = mass;
+    this.inv_mass = 1/mass;
+    this.velocity=velocity;
+    this.sc=showCollision;
+  }
+
+  Ball(float radius, int x, int y) {
+    this.position = new PVector(x, y);
+    this.radius = radius;
+    init();
+  }
+
+  void init() {
     this.dragged=false;
     this.mass = 1;
     this.inv_mass = 1/mass;
     this.restitution = .1;
-    this.position = new PVector(x, y);
-    this.radius = radius;
-    this.velocity = velocity;
-    this.c = col;
-    this.cc = collisioncolor;
-    this.sc = showCollision;
+    this.c = #FFFFFF;
+    this.cc = #FF0000;
+    this.sc = false;
     this.diameter = radius*2;
   }
 
+  void calcColor() {
+    this.c = color(this.velocity.mag()/20*255, 255-this.velocity.mag()/20*255, 0);
+    /*/Debug colors
+     int r = (this.c >> 16) & 0xFF;
+     int g = (this.c >> 8) & 0xFF;
+     int b = this.c & 0xFF;
+     //*/
+  }
   void calc() {
     if (!dragged) {
       velocity.y = velocity.y + (0.5*mass*gravity);
@@ -120,6 +178,8 @@ class Ball extends Physical {
       }
       position.add(velocity);
     }
+
+    calcColor();
 
     if (position.x - radius < 0) {
       position.x = radius;
@@ -183,5 +243,26 @@ class Ball extends Physical {
     noFill();
     stroke(c);
     ellipse(position.x, position.y, diameter, diameter);
+
+    if (velocity.magSq() > 1) {
+      PVector dir = new PVector();
+      velocity.normalize(dir);
+      PVector spitze = PVector.mult(dir, radius).add(position);
+
+
+      PVector start = PVector.sub(spitze, position);
+      start.rotate(HALF_PI);
+      start.normalize();
+      PVector tri1 = PVector.mult(start, radius/2).add(position).lerp(spitze, 0.5);
+      PVector tri2 = PVector.mult(start, -radius/2).add(position).lerp(spitze, 0.5);
+
+      fill(c);
+      beginShape();
+      vertex(tri1.x, tri1.y);
+      vertex(tri2.x, tri2.y);
+      vertex(spitze.x, spitze.y);
+      endShape(CLOSE);
+      noFill();
+    }
   }
 }

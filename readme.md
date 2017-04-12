@@ -3,7 +3,7 @@ Just some Processing sketches for WING 2 - INF
 Smileys  
 The Eyes follow the mouse and they smile more if the mouse comes closer.  
 
-![alt tag](https://raw.githubusercontent.com/momo-aux/processing/master/Smiley/Smiley.gif)  
+![alt tag](https://raw.githubusercontent.com/momo-aux/processing/master/Smileys/Smileys.gif)  
 
 3D_Test  
 Just some basic 3D testing

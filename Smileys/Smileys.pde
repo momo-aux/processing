@@ -4,7 +4,7 @@ int headsize=100;
 int padding=0;
 
 void setup() {
-  size(500, 500);
+  size(501, 501);
 }
 
 void draw() {

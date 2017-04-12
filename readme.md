@@ -12,6 +12,8 @@ Middle drag  - move
 Right click - reset
 Mouse wheel - zoom
 
+![alt tag](https://raw.githubusercontent.com/momo-aux/processing/master/P3D_Test/P3D_Test.gif)  
+
 Lightning  
 Playing around with PVector lerp splitting manipulating  
 Move the mouse and lightning effect will appear from dots to the mouse.  

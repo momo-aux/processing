@@ -6,6 +6,7 @@ A little game to bring all together (collision, gravity, vectors, ...):
 - Use A,W,D or arrow keys to move the flea (btw: the flea is called Mike ;-) ).
 - Jump to the red Platform
 - No death and no Goal yet.
+- LevelBuilder can be used with * (not +)
 
 ![alt tag](https://raw.githubusercontent.com/momo-aux/processing/master/FleaInTheDark/FleaInTheDark.gif)  
 

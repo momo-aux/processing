@@ -1,28 +1,37 @@
 Flea flea;
 World world;
+File file = new File();
 
 PGraphics darkness;
 PGraphics light;
 float lightradius=100;
 PGraphics map;
 boolean showText = true;
+Box selectedBox;
 
 void setup() {
   size(500, 500);
   world = new World(500, 500);
+  //world.buildMode=true;
   darkness = createGraphics(500, 500);
   map = createGraphics(500, 500);
   light = createGraphics(500, 500);
   flea = new Flea(new PVector(500/2, 500-2), new PVector(), 2, world);
-  world.boxes.add(new Box(0, height-10, 100, 10));
-  world.boxes.add(new Box(200, height-10, 100, 10, color(#AAFFAA)));
-  world.boxes.add(new Box(400, height-10, 100, 10));
-  world.boxes.add(new Box(100, 400, 100, 10));
-  world.boxes.add(new Box(400, 350, 80, 10));
-  world.boxes.add(new Box(90, 220, 200, 10));
-  world.boxes.add(new Box(400, 100, 90, 10, color(#FFAAAA)));
-  world.boxes.add(new Box(10, 100, 200, 10));
+  //
+  world.boxes = file.JSONArrayToBoxes(loadJSONArray("Level1.json"));
+  /*/
+   world.boxes.add(new Box(0, height-10, 100, 10));
+   world.boxes.add(new Box(200, height-10, 100, 10, color(#AAFFAA)));
+   world.boxes.add(new Box(400, height-10, 100, 10));
+   world.boxes.add(new Box(100, 400, 100, 10));
+   world.boxes.add(new Box(400, 350, 80, 10));
+   world.boxes.add(new Box(90, 220, 200, 10));
+   world.boxes.add(new Box(400, 100, 90, 10, color(#FFAAAA)));
+   world.boxes.add(new Box(10, 100, 200, 10));
+   saveJSONArray(boxesToJSONArray(world.boxes),"data.json");
+   //*/
 }
+
 
 void draw() {
   background(#000000);
@@ -31,136 +40,13 @@ void draw() {
   flea.draw();
   if (showText) {
     textSize(14);
-    text("You are a flea in the dark, find your way with the flashlight (mouse).\nFocus the beam with the mouse wheel.\nMove with A,W,D or arrow keys.\nHide/show this text with right click.", 10, 30);
-  }
-}
-
-class Box {
-  PVector position;
-  float w;
-  float h;
-  color c;
-
-  Box(int x, int y, int w, int h) {
-    this(new PVector(x, y), w, h, color(#FFFFFF));
-  }
-  Box(int x, int y, int w, int h, color c) {
-    this(new PVector(x, y), w, h, c);
-  }
-
-  Box(PVector position, int w, int h, color c) {
-    this.position = position;
-    this.w=w;
-    this.h=h;
-    this.c = c;
-  }
-
-  void draw(PGraphics map) {
-    map.fill(c);
-    map.rect(position.x, position.y, w, h);
-  }
-}
-
-class World {
-  int width;
-  int height;
-  PVector gravity = new PVector(0, 0.3);
-  float bounce = 0.4;
-  float friction = 0.99;
-  ArrayList<Box> boxes= new ArrayList<Box>();
-
-  World(int width, int height) {
-    this.width = width;
-    this.height = height;
-  }
-
-  void draw(PGraphics map) {
-
-    map.beginDraw();
-    map.background(255-(lightradius/(200-60)*150));
-    collision(flea, map);
-    map.endDraw();
-
-    darkness.beginDraw();
-    darkness.background(#00FF00);
-    darkness.endDraw();
-
-    light.beginDraw();
-    light.background(#FF0000);
-    light.ellipse(mouseX, mouseY, lightradius, lightradius);
-    light.endDraw();
-
-    map.mask(light);
-    image(map, 0, 0);
-  }
-  void collision(Flea flea, PGraphics map) {
-    for (Box box : boxes) {
-      box.draw(map);
-      if (intersects(box, flea)) {
-        handleCollision(box, flea);
-      }
+    String txt = "";
+    if (world.buildMode) {
+      txt="You are in build mode (change with *).\nAdd a box 'a',del boxes 'd', save world 's', drag boxes,\nresize boxes by snapping lower right.";
+    } else {
+      txt = "You are a flea in the dark, find your way with the flashlight (mouse).\nFocus the beam with the mouse wheel.\nMove with A,W,D or arrow keys.\nHide/show this text with right click.";
     }
-  }
-  void handleCollision(Box box, Flea flea) {
-    flea.position.add(PVector.mult(flea.velocity.copy().normalize(), -3));
-    //unten
-    if (flea.velocity.y<0) {
-      flea.velocity.y *= -world.bounce;
-      flea.position.y = box.position.y+box.h + flea.size;
-    }
-    //Oben 
-    else if (flea.velocity.y>0) { 
-      flea.position.y = box.position.y - flea.size;
-      flea.velocity.y *= -world.bounce;
-      flea.airborne=false;
-    } 
-    //*/
-  }
-  boolean intersects(Box box, Flea flea) {
-    // get box closest point to sphere center by clamping
-    float x = Math.max(box.position.x, Math.min(flea.position.x, box.position.x+box.w));
-    float y = Math.max(box.position.y, Math.min(flea.position.y, box.position.y+box.h));
-
-    PVector distance = PVector.sub(flea.position, new PVector (x, y));
-    return (distance.magSq() < pow(flea.size, 2));
-  }
-}
-
-class Flea {
-  PVector position;
-  PVector velocity;
-  float size;
-  World world;
-  float speed=6;
-  float jump = 10;
-  boolean airborne = false;
-  int left, right;
-
-  Flea(PVector position, PVector velocity, float size, World world) {
-    this.position = position;
-    this.velocity = velocity;
-    this.size = size;
-    this.world = world;
-    left = right = 0;
-  }
-
-  void draw() {
-    noStroke();
-    fill(#FFFFFF);
-    ellipse(position.x, position.y, size, size);
-  }
-
-  void calc() {
-    this.velocity.add(world.gravity);
-    velocity = velocity.mult(world.friction);
-    this.position.add(this.velocity);
-    this.position.x += (left + right) * speed;
-    if (flea.position.y > height)
-      flea.position.y = 0;
-    if (flea.position.x < 0)
-      flea.position.x = width;
-    if (flea.position.x > width)
-      flea.position.x = 0;
+    text(txt, 10, 30);
   }
 }
 
@@ -199,9 +85,25 @@ void keyPressed() {
         flea.airborne=true;
       }
     } else if (key == 'a') {
+      if (world.buildMode)
+        world.boxes.add(new Box(mouseX, mouseY, 100, 10, color(#FFFFFF),world.boxes.size()));
+      else  
       flea.left=-1;
     } else if (key == 'd') {
-      flea.right=1;
+      if (world.buildMode)
+        if (selectedBox != null) {
+          for (int i = 0; i < world.boxes.size(); i++) {
+            if (world.boxes.get(i).index==selectedBox.index) {
+              world.boxes.remove(i);
+              selectedBox=null;
+            }
+          }
+        } else  
+        flea.right=1;
+    } else if (key == 's') {
+      file.save(world.boxes);
+    } else if (key == '*') {
+      world.buildMode=!world.buildMode;
     }
   }
 }
@@ -215,8 +117,45 @@ void mouseWheel(MouseEvent event) {
     lightradius=40;
 }
 
+void manipulateBox(Box selectedBox) {
+  if (selectedBox == null)
+    return;
+
+  if (selectedBox.highlite) {
+    selectedBox.position.add(new PVector(mouseX-pmouseX, mouseY-pmouseY));
+    /*/
+     if (selectedBox.position.x > width-selectedBox.w);
+     selectedBox.position.x = width-selectedBox.w;
+     if (selectedBox.position.y > height-selectedBox.h);
+     selectedBox.position.y = height-selectedBox.h;
+     //*/
+  }
+  if (selectedBox.resize) {
+    selectedBox.w += mouseX-pmouseX;
+    if (selectedBox.w <= 10) selectedBox.w = 10;
+    selectedBox.h += mouseY-pmouseY;
+    if (selectedBox.h <= 10) selectedBox.h = 10;
+  }
+}
 void mousePressed() {
+  if ((mouseButton == LEFT) && (world.buildMode)) {
+    manipulateBox(selectedBox);
+  }
   if (mouseButton == RIGHT) {
     showText = !showText;
+  }
+}
+void mouseReleased() {
+  if ((mouseButton == LEFT) && (world.buildMode)) {
+    manipulateBox(selectedBox);
+  }
+  if (mouseButton == RIGHT) {
+    showText = !showText;
+  }
+}
+
+void mouseDragged() {
+  if ((mouseButton == LEFT) && (world.buildMode)) {
+    manipulateBox(selectedBox);
   }
 }

@@ -86,20 +86,23 @@ void keyPressed() {
       }
     } else if (key == 'a') {
       if (world.buildMode)
-        world.boxes.add(new Box(mouseX, mouseY, 100, 10, color(#FFFFFF),world.boxes.size()));
+        world.boxes.add(new Box(mouseX, mouseY, 100, 10, color(#FFFFFF), world.boxes.size()));
       else  
       flea.left=-1;
     } else if (key == 'd') {
       if (world.buildMode)
         if (selectedBox != null) {
           for (int i = 0; i < world.boxes.size(); i++) {
+            println(selectedBox.index);
             if (world.boxes.get(i).index==selectedBox.index) {
               world.boxes.remove(i);
               selectedBox=null;
+              return;
             }
           }
-        } else  
-        flea.right=1;
+        } else {
+          flea.right=1;
+        }
     } else if (key == 's') {
       file.save(world.boxes);
     } else if (key == '*') {

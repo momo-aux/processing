@@ -1,52 +1,63 @@
 Flea flea;
+World world;
 
-int worldwidth=500;
-int worldheight=500;
-World world = new World(worldwidth, worldheight);
-float startsize = 2;
-PVector startpos = new PVector(worldwidth/2, worldheight-startsize);
-PVector startvelo = new PVector();
+PGraphics darkness;
+PGraphics light;
+float lightradius=100;
+PGraphics map;
+boolean showText = true;
 
 void setup() {
   size(500, 500);
-
-  flea = new Flea(startpos, startvelo, startsize, world);
-  world.boxes.add(new Box(new PVector(0, height-10), 100, 10));
-  world.boxes.add(new Box(new PVector(200, height-10), 100, 10));
-  world.boxes.add(new Box(new PVector(400, height-10), 100, 10));
-  world.boxes.add(new Box(new PVector(100, 400), 100, 10));
-  world.boxes.add(new Box(new PVector(400, 350), 80, 10));
-  world.boxes.add(new Box(new PVector(90, 220), 200, 10));
-  world.boxes.add(new Box(new PVector(400, 100), 90, 10));
-  world.boxes.add(new Box(new PVector(10, 100), 200, 10));
+  world = new World(500, 500);
+  darkness = createGraphics(500, 500);
+  map = createGraphics(500, 500);
+  light = createGraphics(500, 500);
+  flea = new Flea(new PVector(500/2, 500-2), new PVector(), 2, world);
+  world.boxes.add(new Box(0, height-10, 100, 10));
+  world.boxes.add(new Box(200, height-10, 100, 10, color(#AAFFAA)));
+  world.boxes.add(new Box(400, height-10, 100, 10));
+  world.boxes.add(new Box(100, 400, 100, 10));
+  world.boxes.add(new Box(400, 350, 80, 10));
+  world.boxes.add(new Box(90, 220, 200, 10));
+  world.boxes.add(new Box(400, 100, 90, 10, color(#FFAAAA)));
+  world.boxes.add(new Box(10, 100, 200, 10));
 }
 
 void draw() {
   background(#000000);
   flea.calc();
-  world.draw();
+  world.draw(map);
   flea.draw();
+  if (showText) {
+    textSize(14);
+    text("You are a flea in the dark, find your way with the flashlight (mouse).\nFocus the beam with the mouse wheel.\nMove with A,W,D or arrow keys.\nHide/show this text with right click.", 10, 30);
+  }
 }
 
 class Box {
   PVector position;
   float w;
   float h;
+  color c;
 
   Box(int x, int y, int w, int h) {
-    this(new PVector(x, y), w, h);
+    this(new PVector(x, y), w, h, color(#FFFFFF));
+  }
+  Box(int x, int y, int w, int h, color c) {
+    this(new PVector(x, y), w, h, c);
   }
 
-  Box(PVector position, int w, int h) {
+  Box(PVector position, int w, int h, color c) {
     this.position = position;
     this.w=w;
     this.h=h;
+    this.c = c;
   }
 
-  void draw() {
-    noStroke();
-    fill(#ffffff);
-    rect(position.x, position.y, w, h);
+  void draw(PGraphics map) {
+    map.fill(c);
+    map.rect(position.x, position.y, w, h);
   }
 }
 
@@ -63,12 +74,28 @@ class World {
     this.height = height;
   }
 
-  void draw() {
-    collision(flea);
+  void draw(PGraphics map) {
+
+    map.beginDraw();
+    map.background(255-(lightradius/(200-60)*150));
+    collision(flea, map);
+    map.endDraw();
+
+    darkness.beginDraw();
+    darkness.background(#00FF00);
+    darkness.endDraw();
+
+    light.beginDraw();
+    light.background(#FF0000);
+    light.ellipse(mouseX, mouseY, lightradius, lightradius);
+    light.endDraw();
+
+    map.mask(light);
+    image(map, 0, 0);
   }
-  void collision(Flea flea) {
+  void collision(Flea flea, PGraphics map) {
     for (Box box : boxes) {
-      box.draw();
+      box.draw(map);
       if (intersects(box, flea)) {
         handleCollision(box, flea);
       }
@@ -98,9 +125,6 @@ class World {
     return (distance.magSq() < pow(flea.size, 2));
   }
 }
-
-
-
 
 class Flea {
   PVector position;
@@ -148,6 +172,11 @@ void keyReleased() {
       flea.right=0;
     }
   } else {
+    if (key == 'a') {
+      flea.left=0;
+    } else if (key == 'd') {
+      flea.right=0;
+    }
   }
 }
 
@@ -164,5 +193,30 @@ void keyPressed() {
       flea.right=1;
     }
   } else {
+    if (key == 'w') {
+      if (!flea.airborne) {
+        flea.velocity.y+= -flea.jump;
+        flea.airborne=true;
+      }
+    } else if (key == 'a') {
+      flea.left=-1;
+    } else if (key == 'd') {
+      flea.right=1;
+    }
+  }
+}
+
+void mouseWheel(MouseEvent event) {
+  float e = event.getCount();
+  lightradius += e*-10;
+  if (lightradius > 200)
+    lightradius=200;
+  if (lightradius < 40)
+    lightradius=40;
+}
+
+void mousePressed() {
+  if (mouseButton == RIGHT) {
+    showText = !showText;
   }
 }

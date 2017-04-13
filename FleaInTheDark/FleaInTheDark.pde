@@ -80,9 +80,11 @@ void keyPressed() {
     }
   } else {
     if (key == 'w') {
-      if (!flea.airborne) {
-        flea.velocity.y+= -flea.jump;
-        flea.airborne=true;
+      if (!world.buildMode) {
+        if (!flea.airborne) {
+          flea.velocity.y+= -flea.jump;
+          flea.airborne=true;
+        }
       }
     } else if (key == 'a') {
       if (world.buildMode)
@@ -90,19 +92,19 @@ void keyPressed() {
       else  
       flea.left=-1;
     } else if (key == 'd') {
-      if (world.buildMode)
+      if (world.buildMode) {
         if (selectedBox != null) {
           for (int i = 0; i < world.boxes.size(); i++) {
-            println(selectedBox.index);
             if (world.boxes.get(i).index==selectedBox.index) {
               world.boxes.remove(i);
               selectedBox=null;
               return;
             }
           }
-        } else {
-          flea.right=1;
         }
+      } else {
+        flea.right=1;
+      }
     } else if (key == 's') {
       file.save(world.boxes);
     } else if (key == '*') {

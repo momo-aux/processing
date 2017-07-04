@@ -67,17 +67,19 @@ class World {
   }
   void handleCollision(Box box, Flea flea) {
     flea.position.add(PVector.mult(flea.velocity.copy().normalize(), -3));
-    //unten
-    if (flea.velocity.y<0) {
+    if ((flea.position.y > box.position.y) && (flea.right == 1)) { //links
+      flea.position.x = box.position.x - flea.size*2;
+    } else if ((flea.position.y > box.position.y) && (flea.left == -1)) { //rechts
+      println("R:" + flea.position + " | " + box.position + " >" + flea.velocity);
+      flea.position.x = box.position.x+box.w + flea.size*2;
+    } else if (flea.velocity.y<0) {//unten
       flea.velocity.y *= -world.bounce;
       flea.position.y = box.position.y+box.h + flea.size;
-    }
-    //Oben 
-    else if (flea.velocity.y>0) { 
+    } else if (flea.velocity.y>0) {//Oben
       flea.position.y = box.position.y - flea.size;
       flea.velocity.y *= -world.bounce;
       flea.airborne=false;
-    } 
+    }
     //*/
   }
   boolean intersects(Box box, Flea flea) {
